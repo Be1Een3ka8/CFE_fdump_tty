@@ -868,6 +868,7 @@ void show_help()
     "                      Importantly you will likely need to know the exact size you need to copy" NEW_LINE 
     "                      which can be hard to figure out." NEW_LINE
     "Valid options are:" NEW_LINE 
+    "   -h / -help / --help, Display the help and exit." NEW_LINE
     "   -of for output file, -v for verbose, -vv for very verbose, -l to print the data like hexdump." NEW_LINE
     "   -tty=/dev/ttyUSB0   To change the tty serial device." NEW_LINE
     "   -tty=/dev/ttyS0" NEW_LINE
