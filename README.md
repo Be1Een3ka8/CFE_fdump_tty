@@ -111,3 +111,19 @@ Valid options are:
     Date:     18 April 2020 13:27 UTC.
     Author:   Gerallt Franke
     Version:  0.1, First version
+
+#### Compilation: (GNU/Linux version)
+
+To compile on Linux open a terminal and cd into this directory. 
+
+Just type: 
+
+    $ make
+
+This will build the Release target. To build the Debug target do:
+
+    $ make Debug
+
+To clean up all binaries and object files do:
+
+    $ make clean 
