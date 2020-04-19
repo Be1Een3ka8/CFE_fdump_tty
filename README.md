@@ -79,15 +79,17 @@ Required options are: if=, offset=, bs=, size=
 
 Valid options are:
 
-    1. -of for output file
+    1. -h / -help / --help, Display the help and exit.
 
-    2. -v for verbose, -vv for very verbose, -l to print the data like hexdump.
+    2. -of for output file
 
-    3. -tty=/dev/ttyUSB0   To change the tty serial device.
+    3. -v for verbose, -vv for very verbose, -l to print the data like hexdump.
 
-    4. -tty=/dev/ttyS0     Can also use an older serial port (COM1)
+    4. -tty=/dev/ttyUSB0   To change the tty serial device.
 
-    5. -tty=/dev/ttyS1     (COM2)
+    5. -tty=/dev/ttyS0     Can also use an older serial port (COM1)
+
+    6. -tty=/dev/ttyS1     (COM2)
 
    You may also need to change the baud rate and settings which are: 115200 8/N/1
 
