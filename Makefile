@@ -1,71 +1,74 @@
-IDIR=./
-ODIR=./obj
-SDIR=./
+# Generic Makefile prototype
 
-APP_NAME=fdump
-DEBUG_DIR=./
-RELEASE_DIR=./
-DEBUG_NAME=d
+UNAME_S != uname -s
+UNAME_P != uname -p
 
-RELEASE_FLAGS=-s
-DEBUG_FLAGS=-g
-CXX=g++
-CXXFLAGS=-std=c++17 -Wall -pedantic
-#CXXFLAGS=
-CXX_DEFINES=-DLINUX
-CXX_INCLUDES=-I$(IDIR)
-CXX_LIBRARIES= 
-LIBS=
+PWD_SHOW=@echo -e `echo 'In: '; pwd`
 
-_OBJ=fdump.o
+P_NIX != if [ $(UNAME_S) = Linux ] || \
+    [ $(UNAME_S) = FreeBSD ] || \
+    [ $(UNAME_S) = OpenBSD ] || \
+    [ $(UNAME_S) = NetBSD ]; then \
+        echo $(uname_s); \
+    else \
+        echo Unrecognized; \
+    fi
 
-OBJ=$(patsubst %,$(ODIR)/%,$(_OBJ))
-OBJ_DEBUG=$(patsubst %,$(ODIR)/%,$(DEBUG_NAME)/$(_OBJ))
-OBJ_RELEASE=$(patsubst %,$(ODIR)/%,$(_OBJ))
+P_BSD != if [ $(UNAME_S) = FreeBSD ] || \
+    [ $(UNAME_S) = OpenBSD ] || \
+    [ $(UNAME_S) = NetBSD ]; then \
+        echo Y; \
+    else \
+        echo N; \
+    fi
 
-all: Release
-	# Target 'all'.
+P_GNULINUX != if [ $(UNAME_S) = Linux ]; then \
+        echo Y; \
+    else \
+        echo N; \
+    fi
 
-Debug: $(APP_NAME).$(DEBUG_NAME)
-	# Built target on Debug.
+MAKEFILE != if [ $(UNAME_S) = Linux ]; then \
+        echo "GNUmakefile"; \
+	elif [ $(UNAME_S) = FreeBSD ] || \
+		[ $(UNAME_S) = OpenBSD ] || \
+		[ $(UNAME_S) = NetBSD ]; then \
+        echo "BSDmakefile"; \
+    else \
+        echo "Bail. Unsupported platform need makefile."; \
+    fi
 
-Release: $(APP_NAME)
-	# Built target on Release.
+# pmake might add -J (private)
+FLAGS=${.MAKEFLAGS:C/\-J ([0-9]+,?)+//W}
 
-# Debug build chain:
-$(APP_NAME).$(DEBUG_NAME): $(OBJ_DEBUG)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES)
-	# d2.
+# Redirect all targets to their platform makefile implementations.
+all: .GENERIC
+.GENERIC:
+	##########################################################
+	##########################################################
+	@echo "Entering generic Makefile."
+	${PWD_SHOW}
+	@echo "MakeFlags: "${.MAKEFLAGS} " Flags: " ${.FLAGS} " Targets: " ${.TARGETS}
+	@echo ${UNAME_S} ${UNAME_P} " BSD: "${P_BSD}" GNU: "${P_GNULINUX}" Making... ["${MAKEFILE}"]"
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
 
-$(ODIR)/$(DEBUG_NAME)/%.o: $(SDIR)/%.cpp
-	$(shell mkdir -p obj)\
-	$(shell mkdir -p obj/$(DEBUG_NAME))\
-	$(CXX) -c -o $@ $< $(CXXFLAGS) $(DEBUG_FLAGS) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES) 
-	# d1.
-
-# Release build chain:
-$(APP_NAME): $(OBJ_RELEASE)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(RELEASE_FLAGS) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES)
-	# r2.
-
-$(ODIR)/%.o: $(SDIR)/%.cpp
-	$(shell mkdir -p obj)\
-	$(CXX) -c -o $@ $< $(CXXFLAGS) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES)
-	# r1.
-
-.PHONY: Debug Release all clean cleanDebug cleanRelease
-
+simple:
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
+Debug:
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
+Release:
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
 cleanDebug:
-	rm -f $(APP_NAME).$(DEBUG_NAME);
-	rm -f $(ODIR)/$(DEBUG_NAME)/*.o *~ core $(INCDIR)/*~ ;
-	rm -rf $(ODIR)/$(DEBUG_NAME)
-	# Debug objects cleaned.
-
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
 cleanRelease:
-	rm -f $(APP_NAME);
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ ;
-	# Release objects cleaned.
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
+clean:
+	${PWD_SHOW}
+	- ${MAKE} -f ${MAKEFILE} ${.TARGETS}
+	- cd ../ && ${MAKE} -f ${MAKEFILE} ${.TARGETS} # BSD make always chdirs. 
+options:
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
+help:
+	${MAKE} -f ${MAKEFILE} ${.TARGETS}
 
-clean: cleanRelease cleanDebug
-	rm -rf $(ODIR)
-	# All objects cleaned.
+.PHONY: all .GENERIC simple Debug Release cleanDebug cleanRelease clean options help
