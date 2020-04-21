@@ -2,7 +2,9 @@
 #### A program to help make backup copies of router flash memory through a serial CFE console using fdump, pipe to binary file or screen.
 
 
-[1. Quick jump to Compilation on Linux](../../../CFE_fdump_tty#compilation-gnulinux-version "Quick jump to Compilation on Linux")
+[1. Quick jump to Compilation on GNU/Linux](../../../CFE_fdump_tty#compilation-gnulinux-version "Quick jump to Compilation on GNU/Linux")
+
+[2. Quick jump to Compilation on Unix/BSD](../../../CFE_fdump_tty#compilation-unixbsd-version "Quick jump to Compilation on Unix/BSD")
 
 ###### fdump: 
 
@@ -130,3 +132,30 @@ This will build the Release target. To build the Debug target do:
 To clean up all binaries and object files do:
 
     $ make clean 
+
+Linux will always make the GNUmakefile and require GNU compilers, this project uses g++ std=c++17.
+
+There is no 'make install' target as you can just run ./fdump <options> as this is a small utility. Formal install options and dist packaging might be added later as things progress. 
+
+#### Compilation: (Unix/BSD version)
+
+Yes you can compile on Unix/BSD systems without using hacks like gmake or downloading any GNU toolchains.
+You might of course first need to install git or curl to get the sources.
+
+To compile on OpenBSD, FreeBSD, NetBSD open a terminal and cd into this directory. 
+
+Just type: 
+
+    $ make
+
+This will build the Release target. To build the Debug target do:
+
+    $ make Debug
+
+To clean up all binaries and object files do:
+
+    $ make clean 
+
+Depending on what Unix/BSD is used, make will either pick BSDmakefile or Makefile. Luckily Makefile realizes this and passes on parameters to whichever implementation is required. Depending on the BSD platform, this project uses clang++ or g++ with std=c++17.
+
+There is no 'make install' target as you can just run ./fdump <options> as this is a small utility. Formal install options and dist packaging might be added later as things progress. 
