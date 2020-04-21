@@ -1,6 +1,9 @@
 ### CFE fdump over serial tty interface
 #### A program to help make backup copies of router flash memory through a serial CFE console using fdump, pipe to binary file or screen.
 
+
+[1. Quick jump to Compilation on Linux](../../../CFE_fdump_tty#compilation-gnulinux-version "Quick jump to Compilation on Linux")
+
 ###### fdump: 
 
 Example dump first 128 bytes of flash0 nvram to screen:
@@ -111,3 +114,19 @@ Valid options are:
     Date:     18 April 2020 13:27 UTC.
     Author:   Gerallt Franke
     Version:  0.1, First version
+
+#### Compilation: (GNU/Linux version)
+
+To compile on Linux open a terminal and cd into this directory. 
+
+Just type: 
+
+    $ make
+
+This will build the Release target. To build the Debug target do:
+
+    $ make Debug
+
+To clean up all binaries and object files do:
+
+    $ make clean 
