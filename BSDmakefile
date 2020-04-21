@@ -1,11 +1,13 @@
-# BSD makefile, tested on OpenBSD.
+# BSD makefile, tested on OpenBSD & NetBSD.
 
 include config.mk
 
 SHELL=/bin/sh
 MAKE=make
 CXX=c++
-CXX_OPTIMIZATIONS_FLAG=-Oz
+CXX_OPTIMIZATIONS_FLAG_CLANG=-Oz
+CXX_OPTIMIZATIONS_FLAG_GCC=-Os
+CXX_OPTIMIZATIONS_FLAG=
 
 PWD_SHOW=@echo -e `echo 'In: '; pwd`
 MKDIR_P=mkdir -p
