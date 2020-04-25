@@ -140,7 +140,7 @@ To clean up all binaries and object files do:
 
 Linux will always make the GNUmakefile and require GNU compilers, this project uses g++ std=c++17.
 
-There is no 'make install' target as you can just run ./fdump <options> as this is a small utility. Formal install options and dist packaging might be added later as things progress. 
+There is no 'make install' target as you can just run ./fdump &lt;options&gt; as this is a small utility. Formal install options and dist packaging might be added later as things progress. 
 
 #### Compilation: (Unix/BSD version)
 
