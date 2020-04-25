@@ -163,9 +163,32 @@ To clean up all binaries and object files do:
 
 Depending on what Unix/BSD is used, make will either pick BSDmakefile or Makefile. Luckily Makefile realizes this and passes on parameters to whichever implementation is required. Depending on the BSD platform, this project uses clang++ or g++ with std=c++17.
 
-There is no 'make install' target as you can just run ./fdump <options> as this is a small utility. Formal install options and dist packaging might be added later as things progress. 
+There is no 'make install' target as you can just run ./fdump &lt;options&gt; as this is a small utility. Formal install options and dist packaging might be added later as things progress. 
 
 #### Compilation: (Windows version)
 
 You may compile on Windows just open the solution file (.sln) in Visual Studio 2019 Community Edition and build the project.
 The project should build straight away but only after you download the Windows 10 SDK which is an optional feature in the Visual Studio Installer so that you have all the C/C++ development header file dependencies.
+
+#### Compilation: (macOS, OS X)
+
+So this will highly likely run in macOS (maybe without changing much) I haven't tested this platform, but given I've heard unistd.h termios.h might still work and the build system has POSIX compatibility, macOS has a shell/Terminal, git tools, and a text editor like vi or vim.
+You can use Xcode. Once you have installed Xcode you'll have the LLVM/Clang or GNU compilers and likely the header libraries. 
+You will need g++ or clang++ and should be able to run the respective makefile or add the files to a fresh C++ Xcode console project and use the IDE to build. 
+The preprocessor definition 'POSIX' must be specified to the compiler if you are using Xcode so the uart library uses the correct implementation.
+
+To compile on macOS without the IDE:
+
+Open Terminal (Applications → Utilities → Terminal) and cd into this directory. 
+
+Just type: 
+
+    $ make -f <GNU or BSD>makefile
+
+This will build the Release target. To build the Debug target do:
+
+    $ make -f <GNU or BSD>makefile Debug
+
+To clean up all binaries and object files do:
+
+    $ make -f <GNU or BSD>makefile clean 
