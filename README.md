@@ -6,6 +6,8 @@
 
 [2. Quick jump to Compilation on Unix/BSD](../../../CFE_fdump_tty#compilation-unixbsd-version "Quick jump to Compilation on Unix/BSD")
 
+[3. Quick jump to Compilation on Windows](../../../CFE_fdump_tty#compilation-windows-version "Quick jump to Compilation on Windows")
+
 ###### fdump: 
 
 Example dump first 128 bytes of flash0 nvram to screen:
