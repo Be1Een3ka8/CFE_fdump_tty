@@ -1,12 +1,13 @@
-# GNU Makefile, tested on Ubuntu.
+# GNU Makefile, tested on Ubuntu. Author Gerallt Franke.
+# Date: 25 April 2020 13:29 UTC. 
 
 include config.mk
 
 SHELL=/bin/sh
 MAKE=make
 CXX=g++
+CXX_DEFINES_GNU=-D POSIX -D LINUX
 CXX_OPTIMIZATIONS_FLAG=-Os
-CXX_DEFINES_GNU=-DLINUX
 
 PWD_SHOW=@echo -e `echo 'In: '; pwd`
 MKDIR_P=mkdir -p
@@ -24,7 +25,7 @@ all:
 
 # Simple test build:  run: $ make simple
 simple:
-	${CXX} -o fdump fdump.cpp $(CXX_INCLUDES)
+	${CXX} ${SOURCES} -o ${APP_NAME} $(CXXFLAGS) $(CXX_INCLUDES) $(CXX_DEFINES_GNU)
 	@echo "Built simple target."
 
 Debug: $(APP_NAME).$(DEBUG_NAME)
@@ -35,7 +36,7 @@ Release: $(APP_NAME)
 
 # Debug build chain:
 $(APP_NAME).$(DEBUG_NAME): $(OBJ_DEBUG)
-	@echo "d2. Link objects into executable/shared library."
+	@echo "d2. Linking objects into executable/shared library."
 	@$(PWD_SHOW)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(CXX_OPTIMIZATIONS_FLAG) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES) $(CXX_DEFINES_GNU)
 	@echo "Link complete."
@@ -43,13 +44,13 @@ $(APP_NAME).$(DEBUG_NAME): $(OBJ_DEBUG)
 $(ODIR)/$(DEBUG_NAME)/%.o: $(SDIR)/%.cpp
 	@echo "d1. Compile and output objects."
 	@$(PWD_SHOW)
-	$(shell mkdir -p obj)\
-	$(shell mkdir -p obj/$(DEBUG_NAME))\
+	$(shell $(MKDIR_P) obj)\
+	$(shell $(MKDIR_P) obj/$(DEBUG_NAME))\
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CXX_OPTIMIZATIONS_FLAG) $(DEBUG_FLAGS) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES) $(CXX_DEFINES_GNU)
 
 # Release build chain:
 $(APP_NAME): $(OBJ_RELEASE)
-	@echo "r2. Link objects into executable/shared library."
+	@echo "r2. Linking objects into executable/shared library."
 	@$(PWD_SHOW)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(CXX_OPTIMIZATIONS_FLAG) $(RELEASE_FLAGS) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES) $(CXX_DEFINES_GNU)
 	@echo "Link complete."
@@ -57,7 +58,7 @@ $(APP_NAME): $(OBJ_RELEASE)
 $(ODIR)/%.o: $(SDIR)/%.cpp
 	@echo "r1. Compile and output objects."
 	@$(PWD_SHOW)
-	$(shell mkdir -p obj)\
+	$(shell $(MKDIR_P) obj)\
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CXX_OPTIMIZATIONS_FLAG) $(LIBS) $(CXX_INCLUDES) $(CXX_LIBRARIES) $(CXX_DEFINES) $(CXX_DEFINES_GNU)
 
 # Clean toolchain:
@@ -82,7 +83,7 @@ clean: cleanRelease cleanDebug
 options:
 	@echo fdump build options:
 	@echo "CXXFLAGS   = ${CXXFLAGS}"
-	@echo "CXX_DEFINES    = ${CXX_DEFINES}"
+	@echo "CXX_DEFINES    = ${CXX_DEFINES} $(CXX_DEFINES_GNU)"
 	@echo "CXX_INCLUDES    = ${CXX_INCLUDES}"
 	@echo "CXX_LIBRARIES    = ${CXX_LIBRARIES}"
 	@echo "CXX        = ${CXX}"

@@ -96,6 +96,9 @@ Valid options are:
 
     6. -tty=/dev/ttyS1     (COM2)
 
+    7. -tty=COM1           To change the tty usb serial device on Windows.
+                           Maybe also try COM2, or anything above COM10 to COM256.
+
    You may also need to change the baud rate and settings which are: 115200 8/N/1
 
    *To do that you will have to change the code and recompile.
@@ -113,9 +116,9 @@ Valid options are:
 
  Known Issues: You may press ctrl-c to cancel, however it likely will not cancel the operation on the CFE console.
 
-    Date:     18 April 2020 13:27 UTC.
+    Date:     24 April 2020 10:24 UTC.
     Author:   Gerallt Franke
-    Version:  0.1, First version
+    Version:  0.2
 
 #### Compilation: (GNU/Linux version)
 
@@ -159,3 +162,8 @@ To clean up all binaries and object files do:
 Depending on what Unix/BSD is used, make will either pick BSDmakefile or Makefile. Luckily Makefile realizes this and passes on parameters to whichever implementation is required. Depending on the BSD platform, this project uses clang++ or g++ with std=c++17.
 
 There is no 'make install' target as you can just run ./fdump <options> as this is a small utility. Formal install options and dist packaging might be added later as things progress. 
+
+#### Compilation: (Windows version)
+
+You may compile on Windows just open the solution file (.sln) in Visual Studio 2019 Community Edition and build the project.
+The project should build straight away but only after you download the Windows 10 SDK which is an optional feature in the Visual Studio Installer so that you have all the C/C++ development header file dependencies.

@@ -1,5 +1,5 @@
 // fdump.cpp: Author Gerallt Franke.
-// Date: 18 April 2020 13:27 UTC. 
+// Date: 24 April 2020 10:24 UTC. 
 // Description: Clone flash memory on CFE terminal using fdump commands over serial tty.
 // Note: 1. Make sure you have added current $USER to dialout group and have a working serial tty interface.
 //		 2. All code needed is in the one file which can make it simpler to compile with 
@@ -29,7 +29,7 @@
 
 //
 // References:
-// Serial tty interface is based on code from:
+// Serial tty interface uart_nix.cpp is based on code from:
 // [1] https://github.com/gbmhunter/CppLinuxSerial
 // [2] https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/#vmin-and-vtime-c_cc
 //
@@ -41,289 +41,40 @@
 
 #include "fdump.h"
 
-void sighandler(int sig)
-{
-	if(verbose)
-	{
-		std::cout << "Signal " << sig << " caught..." << std::endl;	
-	}
-
-	continue_cfe = false;
-}
-
-// Uncomplete tty lock code.
-// void serial_lock()
-// {
-// 	int fd = serial_port;
-
-// 	//FILE *fp=fopen((*tty_interface).c_str(),"r+");
-// 	//int fd = fileno(fp);
-	
-// 	//printf("fileno(stdin) = %d\n", fileno(fp));
-
-// 	//char fd = fp->fd;
-//     // Acquire non-blocking exclusive lock
-//     if(flock(fd, LOCK_EX | LOCK_NB) == -1) 
-//     {
-//         throw std::runtime_error("Serial port with file descriptor " + 
-//             std::to_string(fd) + " is already locked by another process.");
-//     }
-
-//     //fclose(fp);
-// }
-
-bool serial_open()
-{
-	serial_port = open(tty_interface->c_str(), O_RDWR);
-
-	tty_opened = (serial_port >= 0);
-
-	// # Check for errors
-	if (tty_opened) 
+#ifdef POSIX
+	void sighandler(int sig)
 	{
 		if(verbose)
 		{
-			std::cout << std::string("Opened ") + (*tty_interface) + "	[ok]" << std::endl;
+			std::cout << "Signal " << sig << " caught..." << std::endl;	
 		}
 
-		//serial_lock();
-
-		return true;
+		continue_cfe = false;
 	}
-	else
-	{
-	    std::cout << "Opening " + (*tty_interface) + "			[failed]	Error " << std::to_string(errno) << " from open: " << strerror(errno) << std::endl << std::endl;
-	    std::cout << "Try changing the tty by the -tty= switch, or you might need to add your user to dialout group." << std::endl;
-	    std::cout << " e.g 1: (for COM1) ./fdump -tty=/dev/ttyS0 <options>" << std::endl;
-	    std::cout << " e.g 2: (for COM2) ./fdump -tty=/dev/ttyS1 <options>" << std::endl;
-	    std::cout << " e.g 3:            ./fdump -tty=/dev/ttyUSB0 <options>" << std::endl;
-	    std::cout << " e.g 4: (BSD)      ./fdump -tty=/dev/ttyU0 <options>" << std::endl;
-	    std::cout << " default tty is set to: " << DEFAULT_TTY << std::endl << std::endl; 
-	    std::cout << " !**You might also need to change the default settings: 115200 baud 8/N/1 and recompile." << std::endl;
-	}
-	return false;
-}
+#endif
 
-bool serial_conf()
-{
-	memset(&tty, 0, sizeof tty);
-
-	if(tcgetattr(serial_port, &tty) != 0) 
-	{
-		std::cout << "Error " << std::to_string(errno) << " from tcgetattr: " << strerror(errno) << std::endl;
-	}
-
-	if(parity)
-	{
-		tty.c_cflag |= PARENB;  // Set parity bit, enabling parity
-
-		if(verbose)
-		{
-			std::cout << "Parity			[enabled]" << std::endl;	
-		}
-	}
-	else
-	{
-		tty.c_cflag &= ~PARENB; // Clear parity bit, disabling parity (most common)
-
-		if(verbose)
-		{
-			std::cout << "parity 			[disabled]" << std::endl;	
-		}
-	}
-
-	if(stop_bits == 1)
-	{
-		tty.c_cflag &= ~CSTOPB; // Clear stop field, only one stop bit used in communication (most common)
-
-		if(verbose)
-		{
-			std::cout << "Stop bits		[1]" << std::endl;	
-		}
-	}
-	else if(stop_bits == 2)
-	{
-		tty.c_cflag |= CSTOPB;  // Set stop field, two stop bits used in communication
-
-		if(verbose)
-		{
-			std::cout << "Stop bits		[2]" << std::endl;	
-		}
-	}
-	else
-	{
-		std::cout << "Stop bits		[unknown value]" << std::endl;
-	}
-
-	switch(data_bits)
-	{
-		case 5:
-			tty.c_cflag |= CS5; // 5 bits per byte
-		break;
-		case 6:
-			tty.c_cflag |= CS6; // 6 bits per byte
-		break;
-		case 7:
-			tty.c_cflag |= CS7; // 7 bits per byte
-		break;
-		case 8:
-		default:
-			tty.c_cflag |= CS8; // 8 bits per byte (most common)
-	}
-
-	if(verbose)
-	{
-		std::cout << "Data bits 		[" << data_bits << "]" << std::endl;	
-	}
-
-	switch(flow_control)
-	{
-		case FC_NONE:
-			if(verbose)
-			{
-				std::cout << "Flow control		[None]" << std::endl;	
-			}
-
-			// Disable RTS/CTS hardware flow control (most common)
-			tty.c_cflag &= ~CRTSCTS; 
-
-			// Disable XON/XOFF software flow control on input which we don't want.
-			tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
-		break;
-		case FC_RTS_CTS:
-			if(verbose)
-			{
-				std::cout << "Flow control		[RTS/CTS]" << std::endl;	
-			}
-
-			// Enable RTS/CTS hardware flow control
-			tty.c_cflag |= CRTSCTS;  
-
-			// Disable XON/XOFF software flow control on input which we don't want.
-			tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
-		break;
-		case FC_XON_XOFF:
-			if(verbose)
-			{
-				std::cout << "Flow control		[XON/XOFF]" << std::endl;	
-			}
-
-			// Enable XON/XOFF flow control on input.
-			tty.c_cflag |= IXANY;
-		break;
-		default:
-			std::cout << "Flow control		[unknown value]" << std::endl;
-	}
-
-	// Turn on READ & ignore ctrl lines (CLOCAL = 1).
-	// CLOCAL ignores modem carrier detect and other signal lines 
-	// because this is not a modem otherwise this process would recieve a SIGHUP when modem disconnected.
-	tty.c_cflag |= CREAD | CLOCAL;
-
-	//tty.c_cflag |= CREAD;
-	//if(not_modem)
-	//{
-	//	tty.c_cflag |= CLOCAL;
-	//}
-
-	if(!canonical_mode)
-	{
-		// Disable canonical mode because this is a serial port.
-		tty.c_lflag &= ~ICANON;
-	}
-
-	if(!echo)
-	{
-		tty.c_lflag &= ~ECHO; 	// Disable echo
-		tty.c_lflag &= ~ECHOE; 	// Disable erasure
-		tty.c_lflag &= ~ECHONL; // Disable new-line echo
-	}
-
-	if(!signal_characters)
-	{
-		// Disable interpretation of INTR, QUIT and SUSP signal characters.
-		tty.c_lflag &= ~ISIG; 
-	}
-
-	// No special handling of the data on receive of bytes, we need raw data.
-	tty.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Disable any special handling of received bytes
-
-	tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-	tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
-	// tty.c_oflag &= ~OXTABS; // Prevent conversion of tabs to spaces (NOT PRESENT IN LINUX)
-	// tty.c_oflag &= ~ONOEOT; // Prevent removal of C-d chars (0x004) in output (NOT PRESENT IN LINUX)
-
-	/* Both OXTABS and ONOEOT are not defined in Linux. 
-		Linux however does have the XTABS field which seems to be related. 
-		When compiling for Linux, I just exclude these two fields 
-		and the serial port still works fine. */
-
-	// Wait for up to 1s (VTIME=10 deciseconds), returning as soon as any data is received.
-	tty.c_cc[VTIME] = VTIME_APPLIED;    
-	tty.c_cc[VMIN] = 0;
-
-	// Set line speed.
-	// Set in/out baud rate to be 115200 (defines are in termbits.h)
-	cfsetispeed(&tty, DEFAULT_BAUD);
-	cfsetospeed(&tty, DEFAULT_BAUD);
-
-	// Unix options:
-	// B0,  B50,  B75,  B110,  B134,  B150,  B200, B300, B600, B1200, B1800, B2400, B4800, B9600, B19200, B38400, B57600, B115200, B230400, B460800
-	
-	// Specifying a custom baud rate when using GNU C
-	// Non Unix compliant.
-	//cfsetispeed(&tty, 115200);
-	//cfsetospeed(&tty, 115200);
-
-
-	// Save tty settings, also checking for error
-	if (tcsetattr(serial_port, TCSANOW, &tty) == 0) 
-	{
-		if(verbose)
-		{
-			std::cout << "Settings saved." << std::endl << std::endl;
-		}	
-
-	    return true;
-	}
-	else
-	{
-		std::cout << "Settings not saved. 	Error " << std::to_string(errno) << " from tcsetattr: " << strerror(errno) << std::endl;
-
-		return false;
-	}
-}
-
-void serial_write(const char* msg, size_t size)
-{
-	write(serial_port, msg, size);
-}
-
-void serial_write_unsigned(unsigned char* msg, size_t size)
-{
-	write(serial_port, msg, size);
-}
-
-bool serial_read_single_char(char** out)
+bool serial_read_single_char(uart_dev* uart_device, char** out)
 {
 	// Allocate memory for read buffer, set size to read just 1 byte.
-	char read_buf [1];
-	read_buf[0] = '\0'; // memset(&read_buf, '\0', sizeof(read_buf));
-	
+	char read_buffer[1];
+	read_buffer[0] = '\0'; // memset(&read_buf, '\0', sizeof(read_buf));
+	void* data = (void*)&read_buffer[0];
+
 	// Read blocks for a real short time since VTIME=1 (1 is the shortest time to block) 
 	// Read blocks until any number of characters are returned since VMIN=0.
-	int num_bytes = read(serial_port, &read_buf, sizeof(read_buf));
 
-	if (num_bytes < 0) 
-	{
-		std::cout << "Error reading: " << strerror(errno) << std::endl;
-	    return false;
-	}
+	unsigned long num_bytes = uart_read(uart_device, &data, sizeof(read_buffer));
 
+	//if (num_bytes < 0) 
+	//{
+	//	std::cout << "Error reading: " << strerror(errno) << std::endl;
+	//    return false;
+	//}
+	
 	if(num_bytes > 0)
 	{
 		// Just return a single character.
-		*out = &read_buf[0];
+		*out = &read_buffer[0];
 
 		return true;
 	}
@@ -332,32 +83,14 @@ bool serial_read_single_char(char** out)
 	return false;
 }
 
-void serial_read()
+void serial_read(uart_dev* uart_device)
 {
 	bool read = true;
 	while(read)
 	{		
 		char* c;
-		read = serial_read_single_char(&c);	
+		read = serial_read_single_char(uart_device, &c);
 		std::cout << *c;
-	}
-}
-
-void serial_close()
-{
-	if(tty_opened)
-	{
-		if(verbose)
-		{
-			std::cout << "Closing handle to " + (*tty_interface);	
-		}
-		
-		close(serial_port);	
-
-		if(verbose)
-		{
-			std::cout << "	[done]" << std::endl;	
-		}
 	}
 }
 
@@ -449,7 +182,7 @@ void output_file_open()
 	assert(_of_flash.is_open());
 }
 
-void output_file_write(char* buffer, uint real_bytes_per_line)
+void output_file_write(char* buffer, uint32_t real_bytes_per_line)
 {
 	if(!output_to_file) return;
 
@@ -479,8 +212,8 @@ void output_file_close()
 	}
 }
 
-void parse_data_line(std::string line, uint offset, uint* total_bytes_read, 
-	uint data_length, uint data_character_len, uint block_id)
+void parse_data_line(std::string line, uint32_t offset, uint32_t* total_bytes_read,
+	uint32_t data_length, uint32_t data_character_len, uint32_t block_id)
 {
 	std::string seq_id = "";
 	std::string hex_data = "";
@@ -537,17 +270,17 @@ void parse_data_line(std::string line, uint offset, uint* total_bytes_read,
 
 		if(!hex_data.empty())
 		{
-			uint real_bytes_per_line = hex_data.length() / 2;
+			uint32_t real_bytes_per_line = hex_data.length() / 2;
 			
 			if(print_data)
 			{
-				char printable_buffer[real_bytes_per_line];
+				char* printable_buffer = new char[real_bytes_per_line];
 
 				hexbuffer_to_friendlystring(hex_data.c_str(), printable_buffer);
 				printable_buffer[real_bytes_per_line-1] = '\0';
 
 				// Print the seq_id in decimal format.
-				uint seq_id_dec = offset + ((block_id-1) * data_length);
+				uint32_t seq_id_dec = offset + ((block_id-1) * data_length);
 				printf("%010u", seq_id_dec);
 
 				// Uncomment to print the seq_id in hex format.
@@ -559,17 +292,22 @@ void parse_data_line(std::string line, uint offset, uint* total_bytes_read,
 				
 
 				std::cout << std::endl;
+
+				delete[] printable_buffer;
 			}
 
 			if(output_to_file)
 			{
-				//char buffer[BYTES_PER_LINE];
-				char buffer[real_bytes_per_line];
+				//char* buffer = new char[BYTES_PER_LINE];
+				char* buffer = new char[real_bytes_per_line];
+
 				hex_to_buffer(hex_data.c_str(), &buffer[0]);	
 
 				//printf(" %c", buffer[real_bytes_per_line-1]); // Have a look at last byte in line of data to check if sane.
 
 				output_file_write(&buffer[0], real_bytes_per_line);	
+
+				delete[] buffer;
 			}
 			
 			*total_bytes_read += real_bytes_per_line;
@@ -577,18 +315,18 @@ void parse_data_line(std::string line, uint offset, uint* total_bytes_read,
 	}
 }
 
-void flash_read_block(uint offset, uint* total_bytes_read)
+void flash_read_block(uart_dev* uart_device, uint32_t offset, uint32_t* total_bytes_read)
 {
-	uint data_length = BYTES_PER_LINE; // There should be 16 bytes returned per line. So block_size must be a multiple of 16.
-	uint data_character_len = data_length * 2; // There should be 32 characters making up the hex data in the line.
+	uint32_t data_length = BYTES_PER_LINE; // There should be 16 bytes returned per line. So block_size must be a multiple of 16.
+	uint32_t data_character_len = data_length * 2; // There should be 32 characters making up the hex data in the line.
 	bool read = true;
 	std::string line = "";
-	uint block_id = 0;
+	uint32_t block_id = 0;
 
 	while(read && continue_cfe)
 	{		
 		char* c;
-		read = serial_read_single_char(&c);	
+		read = serial_read_single_char(uart_device, &c);
 
 		if(read)
 		{
@@ -620,14 +358,14 @@ void flash_read_block(uint offset, uint* total_bytes_read)
 	}
 }
 
-constexpr uint arg_hash(const char* entropy)
+constexpr uint32_t arg_hash(const char* entropy)
 {
-	uint iv = 0xF81FFFF;
-	uint ik = 0x45;
-	uint ik2 = 11;
-	uint hash = iv;
+	uint32_t iv = 0xF81FFFF;
+	uint32_t ik = 0x45;
+	uint32_t ik2 = 11;
+	uint32_t hash = iv;
 	bool hashing = true;
-	uint index = -1;
+	uint32_t index = -1;
 	char c = '\0';
 
 	while(hashing)
@@ -655,7 +393,7 @@ constexpr uint arg_hash(const char* entropy)
 std::string* arg_get_value(char* arg)
 {
 	std::string* value = new std::string(""); // Memory leak if not freed later.
-	uint index = 0;
+	uint32_t index = 0;
 	char c = 0xFF;
 	bool searching = true;
 	bool ignore_key_name = true;
@@ -717,7 +455,7 @@ void parse_string_arg(char* arg, OnParseFn onParsed, std::string** set)
 	}
 }
 
-void parse_uint_arg(char *arg, OnParseFn onParsed, uint* set)
+void parse_uint_arg(char *arg, OnParseFn onParsed, uint32_t* set)
 {
 	*set = std::stoul(*arg_get_value(arg));
 	onParsed();
@@ -786,6 +524,8 @@ void show_help()
     "   -tty=/dev/ttyS1" NEW_LINE 
     NEW_LINE
     "   -tty=/dev/ttyU0     To change the tty usb serial device on the BSDs. Maybe also try ttyU1, or cuaU0, etc." NEW_LINE
+	"   -tty=COM1           To change the tty usb serial device on Windows." NEW_LINE
+	"                       Maybe also try COM2, or anything above COM10 to COM256." NEW_LINE
     NEW_LINE
     "   You may also need to change the baud rate and settings which are: 115200 8/N/1" NEW_LINE
     "   *To do that you will have to change the code and recompile." NEW_LINE
@@ -991,7 +731,7 @@ bool parse_program_arguments(int argc, char** argv)
 int main(int argc, char **argv)
 {
 	bool fail = false; // Assume the best.
-	uint total_bytes_read = 0;
+	uint32_t total_bytes_read = 0;
 	
 	device_name = new std::string(DEFAULT_DEV_NAME);
 	offset = 0;
@@ -1007,18 +747,16 @@ int main(int argc, char **argv)
 
 	//block_size = 0x10000; // must be multiples of 16 to help line parser.
 	//size_in_bytes = 0x10000; // The size in bytes to clone from the flash memory.
-	//blocks_to_copy = size_in_bytes / block_size; 
 
 	// block_size = 0x40000; // must be multiples of 16 to help line parser.
 	// size_in_bytes = 0x40000; // The size in bytes to clone from the flash memory.
-	// blocks_to_copy = size_in_bytes / block_size; 
 
 	// block_size = 18192; // must be multiples of 16 to help line parser.
 	// size_in_bytes = 18192; // The size in bytes to clone from the flash memory.
-	// blocks_to_copy = size_in_bytes / block_size; 
 	
 	// block_size = 640; // must be multiples of 16 to help line parser.
 	// size_in_bytes = 640; // The size in bytes to clone from the flash memory.
+
 	// blocks_to_copy = size_in_bytes / block_size; 
 
 	fail = !parse_program_arguments(argc, argv);
@@ -1028,15 +766,28 @@ int main(int argc, char **argv)
 		display_title();
 	}
 
+	// Instantiate a new uart device and configure it:
+	uart_dev* uart_device;
+	uart_init(&uart_device);
+	uart_set_baud(uart_device, DEFAULT_BAUD);
+	uart_set_flowctrl(uart_device, DEFAULT_FLOW_CONTROL);
+	uart_set_parity(uart_device, parity, DEFAULT_PARITY_MODE);
+	uart_set_stopbits(uart_device, stop_bits);
+	uart_set_databits(uart_device, data_bits);
+	uart_set_verbosity(uart_device, verbose);
+
 	if(!fail)
 	{
-		if(serial_open())
+		// Open the uart device at the specified port/device name:
+		if (uart_open(uart_device, *tty_interface))
 		{
-			if(serial_conf())
+			if(uart_config(uart_device))
 			{
+#ifdef POSIX
 				signal(SIGABRT, &sighandler);
 				signal(SIGTERM, &sighandler);
 				signal(SIGINT, &sighandler);
+#endif
 
 				if(verbose)
 				{
@@ -1048,17 +799,17 @@ int main(int argc, char **argv)
 					std::string help_cmd = HELP_CMD + NEW_LINE;
 					std::string showdevs_cmd = SHOW_DEVICES_CMD + NEW_LINE;
 
-					serial_write(help_cmd.c_str(), help_cmd.length());
-					serial_read();
+					uart_write(uart_device, (void*)help_cmd.c_str(), help_cmd.length());
+					serial_read(uart_device);
 
-					serial_write(showdevs_cmd.c_str(), showdevs_cmd.length());
-					serial_read();
+					uart_write(uart_device, (void*)showdevs_cmd.c_str(), showdevs_cmd.length());
+					serial_read(uart_device);
 				}
 
 				output_file_open();
 
 				std::cout << "Reading device " << *device_name << std::endl;
-				for(uint i=1; i <= blocks_to_copy && continue_cfe; i++)
+				for(uint32_t i=1; i <= blocks_to_copy && continue_cfe; i++)
 				{
 					std::string s_cmd = FDUMP_CMD + " " + FDUMP_CMD_ARG_OFFSET 
 						+ std::to_string(offset) 
@@ -1068,9 +819,9 @@ int main(int argc, char **argv)
 						+ "\r";
 
 					const char* cstr_cmd = s_cmd.c_str();
-					serial_write(cstr_cmd, strlen(cstr_cmd));
+					uart_write(uart_device, (void*)cstr_cmd, s_cmd.length());
 					
-					flash_read_block(offset, &total_bytes_read);
+					flash_read_block(uart_device, offset, &total_bytes_read);
 
 					offset += block_size;
 				}
@@ -1090,11 +841,11 @@ int main(int argc, char **argv)
 					}
 					
 					// Write ctrl-c to tty (EXT_CTRL_C is etx - ASCII code 3)
-					serial_write(&EXT_CTRL_C, 1); 
+					uart_write(uart_device, (void*)(&EXT_CTRL_C), 1);
 
 					bool cfe_has_quit = true; // Assume the best.
 					char* ext;
-					if(serial_read_single_char(&ext))
+					if(serial_read_single_char(uart_device, &ext))
 					{
 						// line might start with CFE> prompt or ext code.
 						if(*ext == EXT_CTRL_C || *ext == 'C') 
@@ -1133,6 +884,9 @@ int main(int argc, char **argv)
 			{
 				fail = true;
 			}
+
+			// Close handle to tty.
+			uart_close(uart_device);
 		}
 		else
 		{
@@ -1140,9 +894,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-
-	// Close handle to tty.
-	serial_close();
+	uart_free(uart_device);
 
 	// Free all the memory used.
 	free_memory();
@@ -1159,3 +911,4 @@ int main(int argc, char **argv)
 	
 	return EXIT_SUCCESS;	
 }
+

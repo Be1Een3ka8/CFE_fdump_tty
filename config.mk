@@ -1,4 +1,5 @@
-# config.mk: Common configuration between different makefiles and their platforms.
+# config.mk: Common configuration between different makefiles and their platforms. Author Gerallt Franke.
+# Date: 24 April 2020 10:24 UTC. 
 
 IDIR=./
 ODIR=./obj
@@ -20,7 +21,7 @@ CXX_INCLUDES=-I$(IDIR)
 CXX_LIBRARIES= 
 LIBS=
 
-_OBJ=fdump.o
+_OBJ=fdump.o uart_nix.o
 
 # GNU string replacement:
 #OBJ_DEBUG=$(patsubst %,$(ODIR)/%,$(DEBUG_NAME)/$(_OBJ))
@@ -49,6 +50,6 @@ OBJ_RELEASE=
 #OBJ_RELEASE=$(echo ${OBJECTS} | sed ${__EXPR})
 
 # Fallback:
-SOURCES=fdump.cpp
-OBJ_DEBUG=$(ODIR)/$(DEBUG_NAME)/fdump.o
-OBJ_RELEASE=$(ODIR)/fdump.o
+SOURCES=fdump.cpp uart_nix.cpp
+OBJ_DEBUG=$(ODIR)/$(DEBUG_NAME)/fdump.o $(ODIR)/$(DEBUG_NAME)/uart_nix.o
+OBJ_RELEASE=$(ODIR)/fdump.o $(ODIR)/uart_nix.o

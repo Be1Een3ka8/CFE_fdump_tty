@@ -1,98 +1,105 @@
 // fdump.h: Author Gerallt Franke.
-// Date: 20 April 2020 16:29 UTC. 
+// Date: 24 April 2020 10:24 UTC. 
 
-// C++ headers.
-#include <string>
-#include <iostream>
-#include <regex>
-#include <algorithm>
-#include <fstream>
+#ifndef FDUMP_H
+#define FDUMP_H
+	// C++ headers.
+	#include <string>
+	#include <iostream>
+	#include <regex>
+	#include <algorithm>
+	#include <fstream>
 
-// C library headers.
-#include <cstdlib>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+	// C library headers.
+	#include <cstdlib>
+	#include <stdio.h>
+	#include <string.h>
+	#include <assert.h>
 
-//#include <sys/file.h> // Linux flock()
-#include <signal.h>
+	#ifdef LINUX
+		//#include <sys/file.h> // Linux only flock()
+	#endif
+	#ifdef BSD
+		// FreeBSD, OpenBSD, NetBSD
+	#endif
+	#ifdef POSIX
+		// POSIX headers. GNU/Linux, Unix/BSD.
+		#include <signal.h>
+	#endif
 
-// Linux headers.
-#include <fcntl.h> // Contains file controls like O_RDWR
-#include <errno.h> // Error integer and strerror() function
-#include <termios.h> // Contains POSIX terminal control definitions
-#include <unistd.h> // write(), read(), close()
+	// Minimal C++ Uart library.
+	#include "uart.h"
 
-// Application defines.
-#define MY_VERSION "0.1, First version"
-#define MY_NAME "Gerallt Franke"
-#define MY_DATE "18 April 2020 13:27 UTC."
-#define NEW_LINE "\n"
+	// Application defines.
+	#define MY_VERSION "0.2"
+	#define MY_NAME "Gerallt Franke"
+	#define MY_DATE "24 April 2020 10:24 UTC."
+	#define NEW_LINE "\n"
 
-// Platform specific defines and constants. 
-// Change here for any platform differences and recompile.
-#define DEFAULT_BAUD B115200 // The default 115200 baud rate to use.
-// Unix baud rate options:
-// B0,  B50,  B75,  B110,  B134,  B150,  B200, B300, B600, B1200, B1800, B2400, B4800, B9600, B19200, B38400, B57600, B115200, B230400, B460800
+	// Platform specific defines and constants. 
+	// Change here for any platform differences and recompile.
 
-// Application constants:
-const std::string DEFAULT_TTY = "/dev/ttyUSB0"; // Default serial device to use. Can also be /dev/ttyS0 (COM1) or /dev/ttyS1 (COM2).
-const std::string FDUMP_CMD = "fdump"; // CFE command that performs flash memory dumps that outputs data to the terminal.
-const std::string FDUMP_CMD_ARG_OFFSET = "-offset="; // Offset argument for FDUMP_CMD.
-const std::string FDUMP_CMD_ARG_SIZE = "-size="; // Size argument for FDUMP_CMD.
-const std::string HELP_CMD = "help"; // CFE help command. 
-const std::string SHOW_DEVICES_CMD = "show devices"; // CFE Command to show all devices. 
-const std::string WHITESPACE = " \n\r\t\f\v";
-const std::string REGEX_SEQ_ID = "^([0-9a-fA-F]+)"; // Looks for the sequence id in the start of a line returned.
-const std::string REGEX_HEX_DATA = "(\\b[0-9a-fA-F]{2}\\b)"; // Looks for the hex data within a line returned.
-const std::string DEFAULT_DEV_NAME = "flash0.nvram"; // "flash0.boot" // for more see 'show devices'.
-const std::string DEFAULT_FILE_EXT = ".out.bin";
+	#define DEFAULT_BAUD 115200 // The default 115200 baud rate to use.
+	// Unix baud rate options:
+	// 0,  50,  75,  110,  134,  150,  200, 300, 600, 1200, 1800, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800
 
-const uint8_t VTIME_FAST = 1; // Set VTIME_APPLIED to this if baud rate is fast enough for read to not need to wait as long.
-const uint8_t VTIME_SLOW = 10; // Set VTIME_APPLIED to this if dealing with a slow serial speed. 
-const uint8_t VTIME_APPLIED = VTIME_FAST;
+	const FlowControl DEFAULT_FLOW_CONTROL = FC_NONE; // Set the specified flow control.
+	const ParityMode DEFAULT_PARITY_MODE = PM_NONE; // Parity mode
 
-const uint8_t BYTES_PER_LINE = 16; // FDUMP_CMD usually returns 16 bytes of data at once. Likely may break if changed.
-const char EXT_CTRL_C = '\x03'; // Ctrl-c is etx so send ASCII code 0x03 \x03.
+	// Application constants:
+	#ifdef WIN32
+		const std::string DEFAULT_TTY = "COM1"; // Default serial device to use. COM1 -> COM256.
+	#endif
 
-enum FlowControl
-{
-	FC_NONE = 0,
-	FC_XON_XOFF = 1,
-	FC_RTS_CTS = 2
-};
+	// #ifdef LINUX
+	// 	const std::string DEFAULT_TTY = "/dev/ttyUSB0"; // Default serial device to use. Can also be /dev/ttyS0 (COM1) or /dev/ttyS1 (COM2).	
+	// #endif
+	// #ifdef BSD
+	// 	const std::string DEFAULT_TTY = "/dev/ttyS0"; // Default serial device to use. Can also be /dev/ttyS0 (COM1) or /dev/ttyS1 (COM2).	
+	// #endif
 
-// Application global variables:
-// Singletons are bad!
-bool parity = false;
-uint stop_bits = 1; 	// Use only one stop bit.
-uint data_bits = 8; 	// How many bits per byte.
-FlowControl flow_control = FC_NONE;
-bool not_modem = true;
-bool canonical_mode = false; // If true, input is processed when new line is recieved.
-bool echo = false; // If true, sent characters are echoed back.
-bool signal_characters = false;
+	#ifdef POSIX
+		const std::string DEFAULT_TTY = "/dev/ttyUSB0"; // Default serial device to use. Can also be /dev/ttyS0 (COM1) or /dev/ttyS1 (COM2).	
+	#endif
 
-int serial_port = -1;
-bool tty_opened;
-struct termios tty;
-bool continue_cfe = true;
+	const std::string FDUMP_CMD = "fdump"; // CFE command that performs flash memory dumps that outputs data to the terminal.
+	const std::string FDUMP_CMD_ARG_OFFSET = "-offset="; // Offset argument for FDUMP_CMD.
+	const std::string FDUMP_CMD_ARG_SIZE = "-size="; // Size argument for FDUMP_CMD.
+	const std::string HELP_CMD = "help"; // CFE help command. 
+	const std::string SHOW_DEVICES_CMD = "show devices"; // CFE Command to show all devices. 
+	const std::string WHITESPACE = " \n\r\t\f\v";
+	const std::string REGEX_SEQ_ID = "^([0-9a-fA-F]+)"; // Looks for the sequence id in the start of a line returned.
+	const std::string REGEX_HEX_DATA = "(\\b[0-9a-fA-F]{2}\\b)"; // Looks for the hex data within a line returned.
+	const std::string DEFAULT_DEV_NAME = "flash0.nvram"; // "flash0.boot" // for more see 'show devices'.
+	const std::string DEFAULT_FILE_EXT = ".out.bin";
 
-std::regex re_seqid(REGEX_SEQ_ID); // For tty data line parser.
-std::regex re_data(REGEX_HEX_DATA);
+	const uint8_t BYTES_PER_LINE = 16; // FDUMP_CMD usually returns 16 bytes of data at once. Likely may break if changed.
+	const char EXT_CTRL_C = '\x03'; // Ctrl-c is etx so send ASCII code 0x03 \x03.
 
-std::ofstream _of_flash; // The output file stream.
-std::string* of_name = nullptr; // The output file target.
-bool output_to_file = true;
+	// Application global variables:
+	// Singletons are bad!
+	bool parity = false; 		// Also check DEFAULT_PARITY_MODE
+	uint32_t stop_bits = 1; 	// Use only one stop bit.
+	uint32_t data_bits = 8; 	// How many bits per byte.
+	FlowControl flow_control = FC_NONE;
+	bool continue_cfe = true; 	// Disabled by POSIX sig handler.
 
-bool verbose = false;
-bool very_verbose = false;
-bool print_data = false; 
+	std::regex re_seqid(REGEX_SEQ_ID); // For tty data line parser.
+	std::regex re_data(REGEX_HEX_DATA);
 
-uint offset;
-std::string* device_name = nullptr;
-std::string* tty_interface = nullptr;
-uint block_size;
-uint size_in_bytes;
-uint blocks_to_copy;
+	std::ofstream _of_flash; // The output file stream.
+	std::string* of_name = nullptr; // The output file target.
+	bool output_to_file = true;
 
+	bool verbose = false;
+	bool very_verbose = false;
+	bool print_data = false; 
+
+	uint32_t offset;
+	std::string* device_name = nullptr;
+	std::string* tty_interface = nullptr;
+	uint32_t block_size;
+	uint32_t size_in_bytes;
+	uint32_t blocks_to_copy;
+
+#endif
