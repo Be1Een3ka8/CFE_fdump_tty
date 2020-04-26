@@ -36,9 +36,11 @@ Note:
  
     1. Make sure you have added current $USER to dialout group and have a working serial tty interface.
 
-    2. All code needed is in the one file which can make it simpler to compile with
-       Clang or GCC, and simpler to add to Makefile.
-       All this may be refactored later if there are other utilities.
+    2. On Windows you may initially get the weird ERROR_FILE_NOT_FOUND
+       some combination of uninstalling the serial driver and reinstalling
+       unsure if setting the SECURITY_DESCRIPTOR to Everyone group
+       will let you run as a local user instead of as Administrator.
+       Reinstalling driver seemed to fix this issue.
 
  Usage: 
 
@@ -53,7 +55,7 @@ Note:
        and save it locally in an image.
 
     5. You may need to change the baud rate (DEFAULT_BAUD B115200), if it's a slow speed you will 
-       need to set VTIME_APPLIED to VTIME_SLOW and recompile.
+       need to set VTIME_APPLIED to VTIME_SLOW and recompile. There are Comm Timeout settings for Windows.
 
     6. It works a bit like Unix dd, to read the flash you will need to at least specify:
 

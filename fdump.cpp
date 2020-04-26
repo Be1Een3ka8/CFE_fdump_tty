@@ -477,70 +477,84 @@ void display_title()
 void show_help()
 {
 	display_title();
-
+	// Console is 80x24. Sticking to 80 wide output.
     const char* help_view =
-    " Description: Clone flash memory on CFE terminal using fdump commands over serial tty." NEW_LINE
-    " Note: 1. Make sure you have added current $USER to dialout group and have a working serial tty interface." NEW_LINE
-    "       2. All code needed is in the one file which can make it simpler to compile with" NEW_LINE
-    "          Clang or GCC, and simpler to add to Makefile." NEW_LINE
-    "          All this may be refactored later if there are other utilities." NEW_LINE
-    " Usage: Boot into CFE using another program like Putty to interact with the serial tty." NEW_LINE
-    "    When you have a CFE> console, quit Putty and run this program instead." NEW_LINE
-    "    You can have both programs running on the same tty" NEW_LINE
-    "    however they will both compete and the data will likely get scrambled." NEW_LINE
+    " Description: Clone flash memory on CFE terminal" NEW_LINE 
+    "              using fdump commands over serial tty." NEW_LINE
+    " Note: 1. Make sure you have added current $USER to dialout group" NEW_LINE 
+    "          and have a working serial tty interface." NEW_LINE
+    "       2. On Windows you may initially get the weird ERROR_FILE_NOT_FOUND" NEW_LINE
+    "          some combination of uninstalling the serial driver and reinstalling" NEW_LINE
+    "          unsure if setting the SECURITY_DESCRIPTOR to Everyone group" NEW_LINE
+    "          will let you run as a local user instead of as Administrator." NEW_LINE
+    "          Reinstalling driver seemed to fix this issue." NEW_LINE
+    " Usage: Boot into CFE using another program like Putty" NEW_LINE 
+    "        to interact with the serial tty." NEW_LINE
+    "  When you have a CFE> console, quit Putty and run this program instead." NEW_LINE
+    "  You can have both programs running on the same tty" NEW_LINE
+    "  however they will both compete and the data will likely get scrambled." NEW_LINE
     NEW_LINE
-    "    This program will automate the sending of command(s) to CFE to extract flash memory," NEW_LINE
-    "    and save it locally in an image." NEW_LINE
+    "  This program will automate the sending of command(s)" NEW_LINE
+    "  to CFE to extract flash memory, and save it locally in an image." NEW_LINE
     NEW_LINE
-    "    You may need to change the baud rate (DEFAULT_BAUD B115200), if it's a slow speed you will" NEW_LINE
-    "    need to set VTIME_APPLIED to VTIME_SLOW and recompile." NEW_LINE
+    "  You may need to change the baud rate (DEFAULT_BAUD B115200)," NEW_LINE 
+    "  if it's a slow speed you will need to set VTIME_APPLIED" NEW_LINE 
+    "  to VTIME_SLOW and recompile. There are Comm Timeout settings for Windows." NEW_LINE
     NEW_LINE
-    "    It works a bit like Unix dd, to read the flash you will need to at least specify:" NEW_LINE
-    "      1. The device name e.g. flash0, or flash0.boot, or flash0.nvram, etc." NEW_LINE
-    "      2. Block size and the size (in bytes) of the data to read." NEW_LINE
+    "  It works a bit like Unix dd, to read the flash you will need to" NEW_LINE 
+    "  at least specify:" NEW_LINE
+    "   1. The device name e.g. flash0, or flash0.boot, or flash0.nvram, etc." NEW_LINE
+    "   2. Block size and the size (in bytes) of the data to read." NEW_LINE
     NEW_LINE
-    "      3. It is optional to specify the offset and if to output into an output file." NEW_LINE
-    "      4. Other settings include: verbose, very verbose, and if to print the data." NEW_LINE
+    "   3. It is optional to specify the offset and if to output into an output file." NEW_LINE
+    "   4. Other settings include: verbose, very verbose, and if to print the data." NEW_LINE
     NEW_LINE
-    "    Block size is a multiple of 16 (BYTES_PER_LINE) and can be set to the" NEW_LINE 
-    "    total size of the data to read. Having small values for block size" NEW_LINE
-    "    with a really big read decreases the efficency of the read, esp on a serial tty." NEW_LINE
+    "Block size is a multiple of 16 (BYTES_PER_LINE) and can be set to the" NEW_LINE 
+    "total size of the data to read. Having small values for block size" NEW_LINE
+    "with a really big read decreases the efficency of the read, esp on a serial tty." NEW_LINE
     NEW_LINE
     "Required options are: if=, offset=, bs=, size=" NEW_LINE
-    "    1. if           - Input flash device name e.g. flash0.boot, flash0.boot2, flasho0.trx," NEW_LINE
-    "                      flasho0.os, flash0.nvram, etc." NEW_LINE
-    "    2. offset/skip  - The offset (in bytes) into memory to use. Most of the time it is fine" NEW_LINE 
-    "                      to set offset=0 to read from the beginning." NEW_LINE
-    "    3. bs           - The block size. Must be set to multiples of 16 to help parser." NEW_LINE
-    "                      Small block sizes and a really large 'size' set is really slow for reads." NEW_LINE
-    "    4. size/count   - The count in bytes of memory to copy. All values are in decimal." NEW_LINE
-    "                      Importantly you will likely need to know the exact size you need to copy" NEW_LINE 
-    "                      which can be hard to figure out." NEW_LINE
+    " 1. if    - Input flash device name e.g. flash0.boot, flash0.boot2, flasho0.trx," NEW_LINE
+    "            flasho0.os, flash0.nvram, etc." NEW_LINE
+    " 2. offset/skip - The offset (in bytes) into memory to use." NEW_LINE 
+    "                  Most of the time it is fine" NEW_LINE 
+    "                  to set offset=0 to read from the beginning." NEW_LINE
+    " 3. bs          - The block size. Must be set to multiples of 16 to help parser." NEW_LINE
+    "                  Small block sizes and a really large 'size' set" NEW_LINE
+    "                  is really slow for reads." NEW_LINE
+    " 4. size/count  - The count in bytes of memory to copy." NEW_LINE
+    "                  All values are in decimal." NEW_LINE
+    "                  Importantly you will likely need to know the exact size" NEW_LINE
+    "                  you need to copy which can be hard to figure out." NEW_LINE
     "Valid options are:" NEW_LINE 
-    "   -h / -help / --help, Display the help and exit." NEW_LINE
-    "   -of for output file, -v for verbose, -vv for very verbose, -l to print the data like hexdump." NEW_LINE
-    "   -tty=/dev/ttyUSB0   To change the tty serial device on Linux." NEW_LINE
-    "   -tty=/dev/ttyS0" NEW_LINE
-    "   -tty=/dev/ttyS1" NEW_LINE 
+    " -h / -help / --help, Display the help and exit." NEW_LINE
+    " -of for output file, -v for verbose, -vv for very verbose," NEW_LINE 
+    " -l to print the data like hexdump." NEW_LINE
+    " -tty=/dev/ttyUSB0   To change the tty serial device on Linux." NEW_LINE
+    " -tty=/dev/ttyS0" NEW_LINE
+    " -tty=/dev/ttyS1" NEW_LINE 
     NEW_LINE
-    "   -tty=/dev/ttyU0     To change the tty usb serial device on the BSDs. Maybe also try ttyU1, or cuaU0, etc." NEW_LINE
-	"   -tty=COM1           To change the tty usb serial device on Windows." NEW_LINE
+    " -tty=/dev/ttyU0     To change the tty usb serial device on the BSDs." NEW_LINE 
+    "                     Maybe also try ttyU1, or cuaU0, etc." NEW_LINE
+	" -tty=COM1           To change the tty usb serial device on Windows." NEW_LINE
 	"                       Maybe also try COM2, or anything above COM10 to COM256." NEW_LINE
     NEW_LINE
-    "   You may also need to change the baud rate and settings which are: 115200 8/N/1" NEW_LINE
-    "   *To do that you will have to change the code and recompile." NEW_LINE
+    " You may also need to change the baud rate and settings which are: 115200 8/N/1" NEW_LINE
+    " *To do that you will have to change the code and recompile." NEW_LINE
     NEW_LINE
     " Examples:" NEW_LINE
-    "   To list the first 640 bytes of flash0.nvram without saving to file use:" NEW_LINE
-    "       ./fdump if=flash0.nvram offset=0 bs=64 size=640 -vv -l" NEW_LINE
-    "       ./fdump tty=/dev/ttyS0 if=flash0.nvram offset=0 bs=64 size=640 -vv -l" NEW_LINE
+    "  To list the first 640 bytes of flash0.nvram without saving to file use:" NEW_LINE
+    "    ./fdump if=flash0.nvram offset=0 bs=64 size=640 -vv -l" NEW_LINE
+    "    ./fdump tty=/dev/ttyS0 if=flash0.nvram offset=0 bs=64 size=640 -vv -l" NEW_LINE
     NEW_LINE
-    "   To list and store a large block of nvram in a file (large block size to make reads quicker):" NEW_LINE
-    "       ./fdump if=flash0.nvram of=f0.nvram.bin offset=0 bs=65536 size=65536 -v -l" NEW_LINE
+    " To list and store a large block of nvram in a file" NEW_LINE 
+    " (large block size to make reads quicker):" NEW_LINE
+    "    ./fdump if=flash0.nvram of=f0.nvram.bin offset=0 bs=65536 size=65536 -v -l" NEW_LINE
     NEW_LINE
-    " Known Issues: You may press ctrl-c to cancel, however it likely will not cancel the operation on the CFE console." NEW_LINE
+    " Known Issues: You may press ctrl-c to cancel, however it likely will not" NEW_LINE 
+    "               cancel the operation on the CFE console." NEW_LINE
     NEW_LINE
-	" Tested on: Ubuntu, OpenBSD"
+	" Tested on: Ubuntu, FreeBSD, OpenBSD, NetBSD, and Windows."
     NEW_LINE 
 	NEW_LINE
     "    Date:   " MY_DATE NEW_LINE
